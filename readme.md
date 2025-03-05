@@ -3,11 +3,10 @@
 A simple boi that just does a few things with creating passwords that meet AWS password policy requirements.
 
 ```
-> $ python3 aws_pol_passgen.py --help
-usage: aws_pol_passgen.py [-h] -file FILE [-key-words KEY_WORDS [KEY_WORDS ...]] [-max-words MAX_WORDS] [-max-length MAX_LENGTH]
-                          [-max-duplicates MAX_DUPLICATES] [-loosey-dedup] [-simple-mutate] [-alpha-mutate]
-                          [-require-length REQUIRE_LENGTH] [-require-upper REQUIRE_UPPER] [-require-lower REQUIRE_LOWER]
-                          [-require-digit REQUIRE_DIGIT] [-require-special REQUIRE_SPECIAL] [-use-account-pass-pol USE_ACCOUNT_PASS_POL]
+> $ python3 ./aws_pol_passgen.py --help
+usage: aws_pol_passgen.py [-h] [-file FILE] [-key-words KEY_WORDS [KEY_WORDS ...]] [-max-words MAX_WORDS] [-max-length MAX_LENGTH] [-max-duplicates MAX_DUPLICATES] [-loosey-dedup]
+                          [-simple-mutate] [-alpha-mutate] [-require-length REQUIRE_LENGTH] [-require-upper REQUIRE_UPPER] [-require-lower REQUIRE_LOWER]
+                          [-require-digit REQUIRE_DIGIT] [-require-special REQUIRE_SPECIAL] [-use-account-pass-pol USE_ACCOUNT_PASS_POL] [-get-pass-pol GET_PASS_POL]
                           [-target-user TARGET_USER] [-target-days TARGET_DAYS]
 
 Generate AWS-compliant passwords from wordlist.
@@ -37,9 +36,11 @@ options:
                         Minimum special character count
   -use-account-pass-pol USE_ACCOUNT_PASS_POL
                         Pull password policy from AWS profile (will override other 'require' arguments.)
+  -get-pass-pol GET_PASS_POL
+                        Just reports the password policy for the provided account
   -target-user TARGET_USER
-                        Create password combos using provided words and replacing year and season relevant to when they last changed
-                        their password (requires -use-account-pass-pol as well and will remove other years/seasons from key-words list)
+                        Create password combos using provided words and replacing year and season relevant to when they last changed their password (requires -use-account-pass-pol
+                        as well and will remove other years/seasons from key-words list)
   -target-days TARGET_DAYS
-                        Same as -target-user, but you specify the number of days. (Will remove other years/seasons from key-words list
+                        Same as -target-user, but you specify the number of days. (Will remove other years/seasons from key-words list)
 ```
