@@ -4,7 +4,38 @@ import string
 import boto3
 from datetime import datetime, timezone, timedelta
 
-def get_password_pol(profile, args):
+def gprint_password_policy(profile_name=None):
+    session = boto3.Session(profile_name=profile_name)
+    iam_client = session.client("iam")
+    try:
+        policy_keys = ["AllowUsersToChangePassword", "ExpirePasswords", "HardExpiry",
+                       "MaxPasswordAge", "MinimumPasswordLength", "PasswordReusePrevention",
+                       "RequireLowercaseCharacters", "RequireNumbers", "RequireSymbols", "RequireUppercaseCharacters"]
+        response = iam_client.get_account_password_policy()
+        pass_pol = response["PasswordPolicy"]
+
+        response = iam_client.get_account_password_policy()
+        pass_pol = response["PasswordPolicy"]
+        for key in policy_keys:
+            if key not in pass_pol.keys():
+                pass_pol[key] = "Not Set"
+        table_data = [["".join([" " + char if i > 0 and char.isupper() else char for i, char in enumerate(key)]),
+                       str(value)] for key, value in pass_pol.items()]
+        col_widths = [max(len(row[0]) for row in table_data),
+                      max(len(str(row[1])) for row in table_data)]
+        separator = f"+{'-' * (col_widths[0] + 2)}+{'-' * (col_widths[1] + 2)}+"
+        header = f"| {'Policy Setting'.ljust(col_widths[0])} | {'Value'.ljust(col_widths[1])} |"
+        output = [separator, header, separator]
+        for row in table_data:
+            output.append(f"| {row[0].ljust(col_widths[0])} | {row[1].ljust(col_widths[1])} |")
+        output.append(separator)
+        print("\n".join(output))
+    except iam_client.exceptions.NoSuchEntityException:
+        return "No password policy is set for this account."
+    except Exception as e:
+        return f"Error retrieving password policy: {str(e)}"
+
+def use_account_pass_pol(profile, args):
     session = boto3.Session(profile_name=profile)
     iam_client = session.client("iam")
     try:
@@ -111,7 +142,7 @@ def meets_password_policy(password, min_length, require_upper, require_lower, re
 # Main function
 def main():
     parser = argparse.ArgumentParser(description="Generate AWS-compliant passwords from wordlist.")
-    parser.add_argument("-file", required=True, help="file containing key-words with one per line")
+    parser.add_argument("-file", help="file containing key-words with one per line")
     parser.add_argument("-key-words", nargs="+", help="Specify key words directly")    
     parser.add_argument("-max-words", type=int, default=4, help="Maximum words to combine")
     parser.add_argument("-max-length", type=int, default=20, help="Maximum password length")
@@ -125,13 +156,19 @@ def main():
     parser.add_argument("-require-digit", type=int, default=1, help="Minimum digit count")
     parser.add_argument("-require-special", type=int, default=1, help="Minimum special character count")
     parser.add_argument("-use-account-pass-pol", type=str, default="", help="Pull password policy from AWS profile (will override other 'require' arguments.)")
+    parser.add_argument("-get-pass-pol", type=str, default="", help="Just reports the password policy for the provided account")
     parser.add_argument("-target-user", type=str, default="", help="Create password combos using provided words and replacing year and season relevant to when they last changed their password (requires -use-account-pass-pol as well and will remove other years/seasons from key-words list)")
     parser.add_argument("-target-days", type=int, default=0, help="Same as -target-user, but you specify the number of days. (Will remove other years/seasons from key-words list)")
 
     args = parser.parse_args()
 
+    if args.get_pass_pol:
+        gprint_password_policy(args.get_pass_pol)
+        print()
+        exit
+
     if args.use_account_pass_pol:
-        args = get_password_pol(args.use_account_pass_pol, args)
+        args = use_account_pass_pol(args.use_account_pass_pol, args)
 
     words = []
     if args.key_words:
