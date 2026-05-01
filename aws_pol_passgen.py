@@ -56,6 +56,8 @@ def use_account_pass_pol(profile, args):
         return args
 
 def get_user_password_last_set(profile_name, user_name):
+    if user_name.startswith("arn:"):
+        user_name = user_name.rsplit("/", 1)[-1]
     session = boto3.Session(profile_name=profile_name)
     iam_client = session.client("iam")
     response = iam_client.get_login_profile(UserName=user_name)
@@ -157,7 +159,7 @@ def main():
     parser.add_argument("-require-special", type=int, default=0, help="Minimum special character count")
     parser.add_argument("-use-account-pass-pol", type=str, default="", help="Pull password policy from AWS profile (will override other 'require' arguments.)")
     parser.add_argument("-get-pass-pol", type=str, default="", help="Just reports the password policy for the provided account")
-    parser.add_argument("-target-user", type=str, default="", help="Create password combos using provided words and replacing year and season relevant to when they last changed their password (requires -use-account-pass-pol as well and will remove other years/seasons from key-words list)")
+    parser.add_argument("-target-user", type=str, default="", help="Username or user ARN (e.g. arn:aws:iam::123456789012:user/alice). Create password combos using provided words and replacing year and season relevant to when they last changed their password (requires -use-account-pass-pol as well and will remove other years/seasons from key-words list)")
     parser.add_argument("-target-days", type=int, default=0, help="Same as -target-user, but you specify the number of days. (Will remove other years/seasons from key-words list)")
 
     args = parser.parse_args()
