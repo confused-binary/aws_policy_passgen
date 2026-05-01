@@ -42,9 +42,9 @@ def use_account_pass_pol(profile, args):
         response = iam_client.get_account_password_policy()
         pass_pol = response["PasswordPolicy"]
         args.require_length = pass_pol.get('MinimumPasswordLength', args.require_length)
-        args.require_upper = pass_pol.get('RequireUpperCaseCharacters', args.require_upper)
-        args.require_lower = pass_pol.get('RequireLowerCaseCharacters', args.require_lower)
-        args.require_digit = pass_pol.get('RequreNumbers', args.require_digit)
+        args.require_upper = pass_pol.get('RequireUppercaseCharacters', args.require_upper)
+        args.require_lower = pass_pol.get('RequireLowercaseCharacters', args.require_lower)
+        args.require_digit = pass_pol.get('RequireNumbers', args.require_digit)
         args.require_special = pass_pol.get('RequireSymbols', args.require_special)
         return args
     except iam_client.exceptions.NoSuchEntityException:
@@ -151,10 +151,10 @@ def main():
     parser.add_argument("-simple-mutate", default=False, action="store_true", help="Add upper/lower capitalization of first character for each alpha.")
     parser.add_argument("-alpha-mutate", default=False, action="store_true", help="Mutate all characters in each word for all lower/upper combinations.")
     parser.add_argument("-require-length", type=int, default=8, help="Minimum password count")
-    parser.add_argument("-require-upper", type=int, default=1, help="Minimum upper-case count")
-    parser.add_argument("-require-lower", type=int, default=1, help="Minimum lower-case count")
-    parser.add_argument("-require-digit", type=int, default=1, help="Minimum digit count")
-    parser.add_argument("-require-special", type=int, default=1, help="Minimum special character count")
+    parser.add_argument("-require-upper", type=int, default=0, help="Minimum upper-case count")
+    parser.add_argument("-require-lower", type=int, default=0, help="Minimum lower-case count")
+    parser.add_argument("-require-digit", type=int, default=0, help="Minimum digit count")
+    parser.add_argument("-require-special", type=int, default=0, help="Minimum special character count")
     parser.add_argument("-use-account-pass-pol", type=str, default="", help="Pull password policy from AWS profile (will override other 'require' arguments.)")
     parser.add_argument("-get-pass-pol", type=str, default="", help="Just reports the password policy for the provided account")
     parser.add_argument("-target-user", type=str, default="", help="Create password combos using provided words and replacing year and season relevant to when they last changed their password (requires -use-account-pass-pol as well and will remove other years/seasons from key-words list)")
@@ -165,7 +165,7 @@ def main():
     if args.get_pass_pol:
         gprint_password_policy(args.get_pass_pol)
         print()
-        exit
+        exit()
 
     if args.use_account_pass_pol:
         args = use_account_pass_pol(args.use_account_pass_pol, args)
@@ -181,11 +181,14 @@ def main():
         print("Error: No words provided. Use -word or -file.")
         return
 
-    if args.use_account_pass_pol and args.target_user:
+    if args.use_account_pass_pol and not args.target_days:
         words = [w for w in words if not (w.isdigit() and 1900 <= int(w) <= 2099)]
         seasons = ["Winter", "Spring", "Summer", "Fall"]
         words = [w for w in words if isinstance(w, str) and w not in seasons and w not in (s.lower() for s in seasons)]
-        last_set_days = get_user_password_last_set(args.use_account_pass_pol, args.target_user)
+        if args.target_user:
+            last_set_days = get_user_password_last_set(args.use_account_pass_pol, args.target_user)
+        else:
+            last_set_days = 0
         words.extend(create_year_seasons_words(last_set_days))
         words = list(set(words))
 
@@ -197,9 +200,12 @@ def main():
         words = [w for w in words if isinstance(w, str) and w not in seasons and w not in (s.lower() for s in seasons)]
         words.extend(create_year_seasons_words(args.target_days))
 
+    if args.require_special:
+        words.extend(["!", "@", "#", "$"])
+
     if args.simple_mutate and args.alpha_mutate:
         print("Slow your roll. I can't do both simple and alpha mutate.")
-        exit
+        exit()
     elif args.simple_mutate:
         words = simple_mutate_words(words)
     elif args.alpha_mutate:
